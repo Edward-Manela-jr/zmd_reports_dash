@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ZMD | Unified Management Portal</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+
+
+<div class="gov-bar"></div>
+
+<header>
+
+    <img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Coat_of_arms_of_Zambia.svg" alt="Coat of Arms" class="coat-of-arms">
+
+    <div class="header-text">
+
+        <h1>REPUBLIC OF ZAMBIA</h1>
+
+        <p>Zambia Meteorological Department | Unified Portal</p>
+
+    </div>
+
+    <div class="header-clock">
+
+        <span id="currentDate"></span>
+
+        <span id="currentTime">00:00:00</span>
+
+    </div>
+
+</header>
+
+
+
+<nav>
+
+    <button class="nav-btn active" onclick="switchView('monitor')">STATION MONITOR</button>
+
+    <button class="nav-btn" onclick="switchView('renamer')">PHOTO RENAMER</button>
+
+</nav>
+
+
+
+<div id="monitor" class="view active">
+
+    <div class="kpi-row">
+
+        <div class="kpi-card"><h3>Stations</h3><div class="value" id="kTotal">0</div></div>
+
+        <div class="kpi-card" style="border-color: var(--success)"><h3>Online</h3><div class="value" id="kOnline" style="color:var(--success)">0</div></div>
+
+        <div class="kpi-card" style="border-color: var(--warning)"><h3>Delayed</h3><div class="value" id="kDelayed" style="color:var(--warning)">0</div></div>
+
+        <div class="kpi-card" style="border-color: var(--danger)"><h3>Offline</h3><div class="value" id="kOffline" style="color:var(--danger)">0</div></div>
+
+    </div>
+
+
+
+    <div class="upload-container" style="grid-template-columns: 1fr 1fr; margin-bottom: 20px; padding:0;">
+
+        <label class="upload-box"><strong>📁 Monitor Batch</strong><input type="file" id="monDir" webkitdirectory directory multiple hidden onchange="processMonitorFiles(event)"></label>
+
+        <label class="upload-box"><strong>📄 Monitor Files</strong><input type="file" id="monFile" multiple hidden onchange="processMonitorFiles(event)"></label>
+
+    </div>
+
+
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <input type="text" id="search" placeholder="Search stations..." style="padding:8px; width:300px;" onkeyup="updateMonitorDisplay()">
+
+            <div>
+
+                <button class="btn btn-danger" onclick="resetMonitor()">Reset</button>
+
+                <button class="btn btn-success" onclick="downloadCSV()">Export CSV</button>
+
+            </div>
+
+        </div>
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Station Name</th>
+
+                    <th>Latest Transmission</th>
+
+                    <th>Status</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="monitorTable"></tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+
+
+<div id="renamer" class="view">
+
+    <div class="card">
+
+        <div class="card-header">
+
+            <h3>Standard Archive Processing</h3>
+
+            <button class="btn btn-secondary" onclick="resetRenamer()">Clear Selection</button>
+
+        </div>
+
+        
+
+        <div style="padding: 20px; background: #fffbe6; border-left: 5px solid var(--zmd-accent); margin: 20px; font-size: 0.9rem;">
+
+            <strong>Skip Logic:</strong> Name folder <code>YEAR_MONTH_MONTH</code> (e.g. 2026_4 to skip April).
+
+        </div>
+
+
+
+        <div class="upload-container">
+
+            <label class="upload-box"><strong>📂 Photo Folder</strong><input type="file" id="renDir" webkitdirectory directory multiple hidden onchange="handleRenamerFiles(event)"></label>
+
+            <label class="upload-box"><strong>🖼️ Photo Files</strong><input type="file" id="renFile" multiple hidden onchange="handleRenamerFiles(event)"></label>
+
+        </div>
+
+
+
+        <div class="terminal" id="renLog">[SYSTEM] Awaiting photo uploads...</div>
+
+
+
+        <div style="padding: 0 20px 20px 20px;">
+
+            <button id="renProcessBtn" class="btn btn-success" style="width:100%; padding:15px;" disabled onclick="executeRenaming()">Process & Download ZIP</button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<script src="script.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZMD | Unified Management Portal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --zmd-blue: #003366;
+            --zmd-primary: #00264d;
+            --zmd-accent: #b8860b; 
+            --zmd-green: #1a5e1a;
+            --success: #2e7d32;
+            --danger: #d32f2f;
+            --warning: #ed6c02;
+            --secondary: #64748b;
+            --bg: #f0f2f5;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 0; overflow-x: hidden; }
+        
+        /* Official Top Bar */
+        .gov-bar { background: linear-gradient(90deg, #007730 33%, #ef3340 33%, #ef3340 66%, #ffcd00 66%); height: 6px; width: 100%; }
+
+        header {
+            background: var(--zmd-primary); color: white; padding: 1.5rem 5%;
+            display: flex; align-items: center; box-shadow: var(--shadow);
+            border-bottom: 4px solid var(--zmd-accent);
+        }
+
+        .coat-of-arms { height: 80px; margin-right: 25px; }
+        .header-text h1 { margin: 0; font-size: 1.6rem; text-transform: uppercase; letter-spacing: 1px; }
+        .header-text p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
+
+        .header-clock {
+            margin-left: auto; text-align: right;
+            padding: 0.5rem 1.2rem; border-left: 2px solid var(--zmd-accent);
+        }
+        #currentTime { font-size: 1.5rem; font-weight: 700; display: block; color: var(--zmd-accent); font-family: monospace; }
+        #currentDate { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Navigation */
+        nav { background: white; padding: 0 5%; display: flex; gap: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .nav-btn {
+            padding: 15px 25px; border: none; background: none; cursor: pointer;
+            font-weight: bold; color: var(--secondary); border-bottom: 3px solid transparent;
+            transition: 0.3s;
+        }
+        .nav-btn.active { color: var(--zmd-blue); border-bottom-color: var(--zmd-blue); background: #f8fafc; }
+
+        /* Main Content Views */
+        .view { display: none; padding: 30px 5%; max-width: 1200px; margin: auto; }
+        .view.active { display: block; }
+
+        /* Shared Components */
+        .card { background: white; border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 25px; }
+        .card-header { padding: 1.2rem 1.5rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Renamer Specifics */
+        .upload-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
+        .upload-box { border: 2px dashed #cbd5e1; padding: 30px; text-align: center; border-radius: 12px; cursor: pointer; transition: 0.3s; }
+        .upload-box:hover { border-color: var(--zmd-blue); background: #f0f7ff; }
+        .terminal { background: #0f172a; color: #38bdf8; padding: 1.5rem; margin: 20px; border-radius: 8px; font-family: monospace; height: 200px; overflow-y: auto; }
+
+        /* Monitor Specifics */
+        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .kpi-card { background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-bottom: 5px solid var(--zmd-blue); }
+        .kpi-card .value { font-size: 28px; font-weight: bold; color: var(--zmd-blue); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8f9fa; padding: 15px; text-align: left; font-size: 12px; border-bottom: 2px solid #eee; }
+        td { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; }
+        .status { padding: 5px 12px; border-radius: 15px; font-size: 11px; font-weight: bold; }
+        .status-online { background: #dcfce7; color: var(--success); }
+        .status-delayed { background: #fef3c7; color: var(--warning); }
+        .status-offline { background: #fee2e2; color: var(--danger); }
+
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn-success { background: var(--zmd-green); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--secondary); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="gov-bar"></div>
+<header>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Coat_of_arms_of_Zambia.svg" alt="Coat of Arms" class="coat-of-arms">
+    <div class="header-text">
+        <h1>REPUBLIC OF ZAMBIA</h1>
+        <p>Zambia Meteorological Department | Unified Portal</p>
+    </div>
+    <div class="header-clock">
+        <span id="currentDate"></span>
+        <span id="currentTime">00:00:00</span>
+    </div>
+</header>
+
+<nav>
+    <button class="nav-btn active" onclick="switchView('monitor')">STATION MONITOR</button>
+    <button class="nav-btn" onclick="switchView('renamer')">PHOTO RENAMER</button>
+</nav>
+
+<div id="monitor" class="view active">
+    <div class="kpi-row">
+        <div class="kpi-card"><h3>Stations</h3><div class="value" id="kTotal">0</div></div>
+        <div class="kpi-card" style="border-color: var(--success)"><h3>Online</h3><div class="value" id="kOnline" style="color:var(--success)">0</div></div>
+        <div class="kpi-card" style="border-color: var(--warning)"><h3>Delayed</h3><div class="value" id="kDelayed" style="color:var(--warning)">0</div></div>
+        <div class="kpi-card" style="border-color: var(--danger)"><h3>Offline</h3><div class="value" id="kOffline" style="color:var(--danger)">0</div></div>
+    </div>
+
+    <div class="upload-container" style="grid-template-columns: 1fr 1fr; margin-bottom: 20px; padding:0;">
+        <label class="upload-box"><strong>📁 Monitor Batch</strong><input type="file" id="monDir" webkitdirectory directory multiple hidden onchange="processMonitorFiles(event)"></label>
+        <label class="upload-box"><strong>📄 Monitor Files</strong><input type="file" id="monFile" multiple hidden onchange="processMonitorFiles(event)"></label>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <input type="text" id="search" placeholder="Search stations..." style="padding:8px; width:300px;" onkeyup="updateMonitorDisplay()">
+            <div>
+                <button class="btn btn-danger" onclick="resetMonitor()">Reset</button>
+                <button class="btn btn-success" onclick="downloadCSV()">Export CSV</button>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Station Name</th>
+                    <th>Latest Transmission</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="monitorTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="renamer" class="view">
+    <div class="card">
+        <div class="card-header">
+            <h3>Standard Archive Processing</h3>
+            <button class="btn btn-secondary" onclick="resetRenamer()">Clear Selection</button>
+        </div>
+        
+        <div style="padding: 20px; background: #fffbe6; border-left: 5px solid var(--zmd-accent); margin: 20px; font-size: 0.9rem;">
+            <strong>Skip Logic:</strong> Name folder <code>YEAR_MONTH_MONTH</code> (e.g. 2026_4 to skip April).
+        </div>
+
+        <div class="upload-container">
+            <label class="upload-box"><strong>📂 Photo Folder</strong><input type="file" id="renDir" webkitdirectory directory multiple hidden onchange="handleRenamerFiles(event)"></label>
+            <label class="upload-box"><strong>🖼️ Photo Files</strong><input type="file" id="renFile" multiple hidden onchange="handleRenamerFiles(event)"></label>
+        </div>
+
+        <div class="terminal" id="renLog">[SYSTEM] Awaiting photo uploads...</div>
+
+        <div style="padding: 0 20px 20px 20px;">
+            <button id="renProcessBtn" class="btn btn-success" style="width:100%; padding:15px;" disabled onclick="executeRenaming()">Process & Download ZIP</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* --- SHARED LOGIC --- */
+    function switchView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('currentDate').innerText = now.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }).toUpperCase();
+        document.getElementById('currentTime').innerText = now.toLocaleTimeString([], { hour12: false });
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    /* --- STATION MONITOR LOGIC --- */
+    let stationMaster = new Map();
+    async function processMonitorFiles(e) {
+        const files = Array.from(e.target.files);
+        const now = new Date();
+        const noise = ['CRASH', 'DCP', 'MQTT', 'AWS', 'SOLAR', 'LOG', 'SYNOP', 'TABLE'];
+        const noiseRegex = new RegExp('(' + noise.join('|') + ').*', 'g');
+
+        for (const file of files) {
+            let name = file.name.split('.')[0].toUpperCase().replace(noiseRegex, '').replace(/(?<=[A-Z_\s])\d+/g, '').replace(/_/g, ' ').trim();
+            if (name.length < 2) continue;
+
+            try {
+                const text = new TextDecoder().decode(await file.arrayBuffer());
+                const matches = text.match(/\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b|\b\d{1,2}[-/]\d{1,2}[-/]\d{4}\b/g);
+                if (!matches) continue;
+
+                const latestDate = new Date(Math.max(...matches.map(d => {
+                    const s = d.split(/[-/]/);
+                    return s[0].length === 4 ? new Date(d) : new Date(s[2], s[1]-1, s[0]);
+                })));
+
+                const existing = stationMaster.get(name);
+                if (!existing || latestDate > existing.rawDate) {
+                    const diff = (now - latestDate) / 3600000;
+                    stationMaster.set(name, {
+                        rawDate: latestDate,
+                        dateStr: latestDate.toISOString().split('T')[0],
+                        status: diff > 72 ? "Offline" : (diff > 24 ? "Delayed" : "Online")
+                    });
+                }
+            } catch (err) {}
+        }
+        updateMonitorDisplay();
+    }
+
+    function updateMonitorDisplay() {
+        const query = document.getElementById('search').value.toLowerCase();
+        const tbody = document.getElementById('monitorTable');
+        tbody.innerHTML = '';
+        let stats = { total: 0, online: 0, delayed: 0, offline: 0 };
+
+        Array.from(stationMaster.keys()).sort().forEach(name => {
+            if (!name.toLowerCase().includes(query)) return;
+            const data = stationMaster.get(name);
+            stats.total++; stats[data.status.toLowerCase()]++;
+            tbody.innerHTML += `<tr><td><strong>${name}</strong></td><td>${data.dateStr}</td><td><span class="status status-${data.status.toLowerCase()}">${data.status}</span></td></tr>`;
+        });
+
+        document.getElementById('kTotal').innerText = stats.total;
+        document.getElementById('kOnline').innerText = stats.online;
+        document.getElementById('kDelayed').innerText = stats.delayed;
+        document.getElementById('kOffline').innerText = stats.offline;
+    }
+
+    function resetMonitor() { stationMaster.clear(); updateMonitorDisplay(); }
+
+    function downloadCSV() {
+        let csv = "Station ID,Transmission,Status\n";
+        stationMaster.forEach((v, k) => csv += `"${k}","${v.dateStr}","${v.status}"\n`);
+        const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+        a.download = "ZMD_Monitor_Report.csv"; a.click();
+    }
+
+    /* --- PHOTO RENAMER LOGIC --- */
+    let photoQueue = [];
+    const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    function handleRenamerFiles(e) {
+        photoQueue = Array.from(e.target.files).filter(f => !f.name.startsWith('.'));
+        const log = document.getElementById('renLog');
+        if (photoQueue.length > 0) {
+            document.getElementById('renProcessBtn').disabled = false;
+            log.innerHTML += `<br><span style="color:#4ade80">[READY] ${photoQueue.length} photos loaded.</span>`;
+        }
+    }
+
+    async function executeRenaming() {
+        const log = document.getElementById('renLog');
+        const zip = new JSZip();
+        const folderPath = photoQueue[0].webkitRelativePath || "ARCHIVE_2026";
+        const folderName = folderPath.split('/')[0];
+        const parts = folderName.split('_');
+        const year = parts[0] || "2026";
+        const skips = parts.slice(1).map(n => parseInt(n));
+        
+        const avail = [];
+        for (let i = 1; i <= 12; i++) if (!skips.includes(i)) avail.push(MONTHS[i-1]);
+
+        log.innerHTML += `<br>[START] Renaming for ${year}...`;
+        const perMonth = Math.ceil(photoQueue.length / avail.length);
+
+        photoQueue.sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric:true})).forEach((file, i) => {
+            let mIdx = Math.min(Math.floor(i / perMonth), avail.length - 1);
+            const ext = file.name.split('.').pop();
+            const newName = `${avail[mIdx]}_${year}_${(i % perMonth) + 1}.${ext}`;
+            zip.file(`${folderName}_Renamed/${newName}`, file);
+        });
+
+        const content = await zip.generateAsync({type: "blob"});
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = `${folderName}_Processed.zip`;
+        link.click();
+        log.innerHTML += `<br><span style="color:#4ade80">[COMPLETE] Downloaded.</span>`;
+    }
+
+    function resetRenamer() { photoQueue = []; document.getElementById('renLog').innerHTML = "[SYSTEM] Ready."; document.getElementById('renProcessBtn').disabled = true; }
+</script>
+</body>
+</html>
