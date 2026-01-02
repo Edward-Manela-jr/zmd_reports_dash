@@ -1,3 +1,4 @@
+#should be for CORS
 import os
 
 import re
